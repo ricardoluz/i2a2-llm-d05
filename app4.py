@@ -1,11 +1,8 @@
 import streamlit as st
 import pandas as pd
 
-# import os
 import io
 import matplotlib.pyplot as plt
-
-# from dotenv import load_dotenv
 
 # Importações do LangChain atualizadas
 from langchain_openai import ChatOpenAI
@@ -13,28 +10,10 @@ from langchain.memory import ConversationBufferMemory
 from langchain_experimental.agents.agent_toolkits import create_pandas_dataframe_agent
 from langchain.callbacks import StreamlitCallbackHandler
 
-# --- 1. CONFIGURAÇÃO E VARIÁVEIS DE AMBIENTE ---
 
-# Carregar variáveis de ambiente de um arquivo .env
-# load_dotenv()
-# DEEPSEEK_BASE_URL = os.getenv("DEEPSEEK_BASE_URL")
-DEEPSEEK_BASE_URL = "https://api.deepseek.com/"
-
-
-# st_deepseek_api_key = None
-# if not st_deepseek_api_key:
-#     st_deepseek_api_key = st.text_input(
-#         "Por favor, insira sua chave de API DeepSeek:",
-#         key="name_input",
-#         type="password",
-#         help="Você pode obter sua chave de API em https://deepseek.ai",
-#     )
-
-
-# --- 2. FUNÇÃO DE CRIAÇÃO DO AGENTE (CACHE) ---
-
-
+# Criação do agente com uso de cache
 # O cache evita recriar o agente a cada interação, a menos que o DataFrame mude.
+
 @st.cache_resource(hash_funcs={pd.DataFrame: lambda _: None})
 def setup_agent(df: pd.DataFrame):
     """
@@ -73,7 +52,6 @@ def setup_agent(df: pd.DataFrame):
         agent = create_pandas_dataframe_agent(
             llm=llm_deepseek,
             df=df,
-            # verbose=True,
             verbose=False,
             agent_type="openai-tools",
             memory=memory,
@@ -89,12 +67,12 @@ def setup_agent(df: pd.DataFrame):
         st.stop()
 
 
-# --- 3. CONFIGURAÇÃO DA INTERFACE STREAMLIT ---
+# Configuração da página em Streamlit
 
-st.set_page_config(page_title="DeepSeek CSV Analyst com Gráficos", layout="wide")
-st.title("📊 DeepSeek CSV Analyst (Suporte a Gráficos)")
+st.set_page_config(page_title="Analista Arquivo CSV", layout="wide")
+st.title("📊 Analista de CSV com suporte a gráficos.")
 st.markdown(
-    "Peça análises e **gráficos** em linguagem natural! Ex: 'Mostre a distribuição de Idade em um histograma'."
+    "Peça análises e **gráficos** em linguagem natural."
 )
 
 # Inicializa o histórico de chat e o agente na sessão
@@ -104,11 +82,11 @@ if "agent" not in st.session_state:
     st.session_state.agent = None
 
 
-# Solicitar a chave de API
+# Solicitar a chave de API.
 def input_key():
     text_input_container = st.empty()
     st_deepseek_api_key = text_input_container.text_input(
-        "Insira sua chave de API DeepSeek",
+        "# Insira sua chave de API DeepSeek. #",
         key="name_input",
         type="password",
         help="Você pode obter sua chave de API em https://deepseek.ai",
@@ -117,14 +95,14 @@ def input_key():
     if st_deepseek_api_key != "":
         text_input_container.empty()
         return st_deepseek_api_key
-        # st.info(t)
 
+
+# Definição das variáveis globais para a chave e URL da API DeepSeek
+DEEPSEEK_BASE_URL = "https://api.deepseek.com/"
 DEEPSEEK_API_KEY = input_key()
-# st.write(f"Sua chave de API é: {DEEPSEEK_API_KEY}")
 
 
-# --- 4. UPLOAD DO ARQUIVO CSV ---
-
+# Upload do arquivo
 uploaded_file = st.sidebar.file_uploader("Upload do Arquivo CSV", type=["csv"])
 
 if uploaded_file:
@@ -145,7 +123,7 @@ if uploaded_file:
             st.session_state.messages.append(
                 {
                     "role": "assistant",
-                    "content": "Olá! Seu arquivo foi carregado. Pergunte algo como: 'Quais os tipos de dados?' ou 'Crie um gráfico de barras da coluna Departamento'.",
+                    "content": "Olá! Seu arquivo foi carregado. Pergunte algo como: 'Quais os tipos de dados?' ou 'Crie um gráfico de barras dispersão das colunas ....'.",
                 }
             )
     except Exception as e:
@@ -176,13 +154,13 @@ if prompt := st.chat_input("Digite sua pergunta de análise ou plotagem..."):
 
     # Invoca o Agente e processa a resposta
     with st.chat_message("assistant"):
-        st_callback = StreamlitCallbackHandler(st.container())
+        #st_callback = StreamlitCallbackHandler(st.container())
 
         with st.spinner("DeepSeek está pensando e gerando a resposta..."):
             try:
                 # O agente invoca a LLM para gerar e executar o código Python
                 result = st.session_state.agent.invoke(
-                    {"input": prompt}, {"callbacks": [st_callback]}
+                    {"input": prompt} #, {"callbacks": [st_callback]}
                 )
 
                 response_text = result.get(
